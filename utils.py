@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+
+# Есть формула 20: 
+#   Gtb = (Fcns - EGPb + k1 * Gp) / k2 (20)
+# EGP есть в формуле 21:
+#   EGPb = Fcns + (Vm0 * Gtb) / (Km0 + Gtb) (21)
+# Поэтому решаем квадратное уравнение:
+#   k2 * Gtb ^ 2 + (k2*Km0 - k1*Gpb + Vm0) * Gtb - k1 * Km0 * Gpb = 0
 def solve_quadratic_equasion(a_eq, b_eq, c_eq):
     discr = (b_eq**2) - (4*a_eq*c_eq)
 
