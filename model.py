@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import numpy as np
 
 from utils import solve_quadratic_equasion
+from scipy.integrate import odeint
+from math import tanh
 from coefficients import *
-
-
-# Эндогенное производство глюкозы
-def EGP(t, Gp, Id):
-    return kp1 - kp2 * Gp - kp3 * Id
-
-
-
-
+from functions import *
 
 def simulate( 
     time,  # длительность моделирования, мин 
@@ -43,6 +38,14 @@ def simulate(
     '''Базальные значения глюкозы'''
     Gb = G(0, Gpb)  # базальная концентрация инсулина
     # Рассчитаем базальный уровень глюкозы Gtb (в тканях с медленным всасыванием глюкозы)    
+    '''
+    Есть формула 20: 
+      Gtb = (Fcns - EGPb + k1 * Gp) / k2 (20)
+    EGP есть в формуле 21:
+      EGPb = Fcns + (Vm0 * Gtb) / (Km0 + Gtb) (21)
+    Поэтому решаем квадратное уравнение:
+      k2 * Gtb ^ 2 + (k2*Km0 - k1*Gpb + Vm0) * Gtb - k1 * Km0 * Gpb = 0
+    '''
     Gtb = solve_quadratic_equasion(
         a_eq=k2,
         b_eq=k2*Km0 - k1*Gpb + Vm0,
@@ -64,7 +67,7 @@ def simulate(
     global kp1
     kp1 = EGPb + kp2 * Gpb + kp3 * Ib   # глобальный параметр переопределяется в модели подкожного инсулина
 
-    # Начальные значения
+    '''Начальные значения'''
     Gt0 = Gtb
     Il0 = Ilb
     Ip0 = Ipb
@@ -82,57 +85,106 @@ def simulate(
     Y0 = 0
     Z0 = 0
 
+    '''Система дифф. уравнений'''
+    def ode_system(x, t):
+        '''Входные параметры'''
+        Gp = x[0]
+        Gt = x[1]
+        Il = x[2]
+        Ip = x[3]
+        Isc1 = x[4]
+        Isc2 = x[5]
+        Ione = x[6]
+        Id = x[7]
+        Qsto1 = x[8]
+        Qsto2 = x[9]
+        Qgut = x[10]
+        X = x[11]
+        Y = x[12]
+        Z = x[13]
+        '''Подсистема глюкозы'''
+        dGpdt = EGP(t, Gp, Id) + Ra(t, Qgut, BW) - Uii(t) - E(t, Gp) - k1 * Gp + k2 * Gt
+        if not ex_on:  # Если упражнения не включены - используем Uid а не Uid_ex
+            dGtdt = -Uid(t, X, Gt) + k1 * Gp - k2 * Gt
+        else:
+            dGtdt = -Uid_ex(t, X, Y, Z, Gt, Ib, HRb, ex_start, ex_finish, ex_hr) + k1 * Gp - k2 * Gt
+        '''Подсистема инсулина'''
+        dIldt = -(m1 + m3) * Il + m2 * Ip
+        dIpdt = -(m2 + m4) * Ip + m1 * Il + R(t, Isc1, Isc2)  # У здорового нет R
+        ''' Подсистема подкожного инсулина'''
+        # ВАЖНО: Если введение инсулина происходит в момент времени 0, то Isc10 = Djins
+        dIsc1dt = -(kd + ka1) * Isc1 + IIR(t, IIRb)
+        dIsc2dt = kd * Isc1 - ka2 * Isc2
+        '''Эндогенная продукция глюкозы'''
+        dIonedt = -ki * (Ione - I(t, Ip))
+        dIddt = -ki * (Id - Ione)
+        '''Глюкоза в пищеварительном тракте'''
+        # ВАЖНО: Если прием пищи мгновенный (по умолчанию), ingestion(t) всегда 0, а Qsto10 = D
+        dQsto1dt = -kgri *  Qsto1 + ingestion(t)
+        dQsto2dt = -kempt(t, Qsto1, Qsto2, D, meal_time) * Qsto2 + kgri * Qsto1
+        dQgutdt = -kabs * Qgut + kempt(t, Qsto1, Qsto2, D, meal_time) * Qsto2        
+        '''Инсулин в межклеточной жидкости'''
+        dXdt = -p2U * X + p2U * (I(t, Ip) - Ib)  # was deleted - Ib
+        '''Физическая активность'''
+        dYdt = -(1/Thr) * (Y - (HR(t, ex_start, ex_finish, ex_hr, HRb) - HRb))
+        dZdt = -(fex(t, Y, HRb)/ Tin + 1 / Tex) * Z + fex(t, Y, HRb)
 
-'''
-Система дифф. уравнений
-'''
-def ode_system(x, t):
-    '''Входные параметры'''
-    Gp = x[0]
-    Gt = x[1]
-    Il = x[2]
-    Ip = x[3]
-    Isc1 = x[4]
-    Isc2 = x[5]
-    Ione = x[6]
-    Id = x[7]
-    Qsto1 = x[8]
-    Qsto2 = x[9]
-    Qgut = x[10]
-    X = x[11]
-    Y = x[12]
-    Z = x[13]
-    '''Подсистема глюкозы'''
-    dGpdt = EGP(t, Gp, Id) + Ra(t, Qgut) - Uii(t) - E(t, Gp) - k1 * Gp + k2 * Gt
-    if not ex_on:  # Если упражнения не включены - используем Uid а не Uid_ex
-        dGtdt = -Uid(t, X, Gt) + k1 * Gp - k2 * Gt
+        return [dGpdt, dGtdt, dIldt, dIpdt, dIsc1dt, dIsc2dt, dIonedt, dIddt, dQsto1dt, dQsto2dt, dQgutdt, dXdt, dYdt, dZdt]
+
+    def get_updated_init_conditions(x, food, insulin):
+        return [
+            x[-1,0], x[-1,1], x[-1,2], x[-1,3], 
+            x[-1,4] + insulin, 
+            x[-1,5] + kd / ka2 * insulin,
+            x[-1,6], x[-1,7], 
+            x[-1,8] + food,
+            x[-1,9], x[-1,10], x[-1,11], x[-1,12], x[-1,13]
+        ]
+
+    
+    if meal_time > 0 and meal_time == injection_time:
+        t = np.linspace(0, time, samples)  # начало, завершение моделирования, число отсчетов
+        x10 = [Gp0, Gt0, Il0, Ip0, Isc10, Isc20, Ione0, Id0, Qsto10, Qsto20, Qgut0, X0, Y0, Z0]  # начальные условия
+        t1 = np.linspace(0, meal_time, meal_time)
+        x1 = odeint(ode_system, x10, t1)
+        x20 = get_updated_init_conditions(x1, D, Djins)
+        t2 = np.linspace(meal_time, time + 1, time - meal_time + 1)
+        x2 = odeint(ode_system, x20, t2, hmax=1)
+        
+        x2 = np.delete(x2, (0), axis=0)  # delete first row
+
+        for row in (x2):
+            x1 = np.append(x1, [row], axis=0)
+        x = x1 
     else:
-        dGtdt = -Uid_ex(t, X, Y, Z, Gt) + k1 * Gp - k2 * Gt
-    '''Подсистема инсулина'''
-    dIldt = -(m1 + m3) * Il + m2 * Ip
-    dIpdt = -(m2 + m4) * Ip + m1 * Il + R(t, Isc1, Isc2)  # У здорового нет R
-    ''' Подсистема подкожного инсулина'''
-    # ВАЖНО: Если введение инсулина происходит в момент времени 0, то Isc10 = Djins
-    dIsc1dt = -(kd + ka1) * Isc1 + IIR(t)
-    dIsc2dt = kd * Isc1 - ka2 * Isc2
-    '''Эндогенная продукция глюкозы'''
-    dIonedt = -ki * (Ione - I(t, Ip))
-    dIddt = -ki * (Id - Ione)
-    '''Глюкоза в пищеварительном тракте'''
-    # ВАЖНО: Если прием пищи мгновенный (по умолчанию), ingestion(t) всегда 0, а Qsto10 = D
-    dQsto1dt = -kgri *  Qsto1 + ingestion(t)
-    dQsto2dt = -kempt(t, Qsto1, Qsto2) * Qsto2 + kgri * Qsto1
-    dQgutdt = -kabs * Qgut + kempt(t, Qsto1, Qsto2) * Qsto2        
-    '''Инсулин в межклеточной жидкости'''
-    dXdt = -p2U * X + p2U * (I(t, Ip) - Ib)  # was deleted - Ib
-    '''Физическая активность'''
-    dYdt = -(1/Thr) * (Y - (HR(t) - HRb))
-    dZdt = -(fex(t, Y)/ Tin + 1 / Tex) * Z + fex(t, Y)
-
-    return [dGpdt, dGtdt, dIldt, dIpdt, dIsc1dt, dIsc2dt, dIonedt, dIddt, dQsto1dt, dQsto2dt, dQgutdt, dXdt, dYdt, dZdt]
-
+        t = np.linspace(0, time, samples)  # начало, завершение моделирования, число отсчетов
+        x0 = [Gp0, Gt0, Il0, Ip0, Isc10, Isc20, Ione0, Id0, Qsto10, Qsto20, Qgut0, X0, Y0, Z0] # начальные значения
+        x = odeint(ode_system, x0, t, hmax=1)
+    return x, t
 
 
 
 if __name__ == "__main__":
-    simulate()
+
+    test_Gpb = (4.8 * MG_DL_TO_MMOL_L_CONVENTION_FACTOR) * VG
+    test_Gp0 = (10.2 * MG_DL_TO_MMOL_L_CONVENTION_FACTOR) * VG
+    food_and_insulin_time = 25  # Пока что жестко прошито, в планах разделение
+
+    res, t = simulate(
+        time=420,  # длительность моделирования, мин 
+        samples=420,  # число временных отсчетов
+        BW=77,  # вес тела
+        D=0,  # масса принятых углеводов, мг
+        Gpb=test_Gpb,  # базальный уровень глюкозы в крови
+        Gp0=test_Gp0,  # начальный уровень глюкозы в крови
+        Djins=0,  # доза быстрого инсулина
+        IIRb=2,  # базальный уровень инсулина
+        meal_time=food_and_insulin_time,  # время приема пищи, мин с начала моделирования
+        injection_time=food_and_insulin_time,  # время введения нисулина, мин с начала моделирования
+        ex_on=False,  # включение/выключение физической активности
+        ex_start=20,  # время начала упражнения
+        ex_finish=80,  # время завершения упражнения
+        ex_hr=120,  # ЧСС во время упражнения
+        HRb=60  # базальное значение ЧСС
+    )
+    print_graphs(res, t)

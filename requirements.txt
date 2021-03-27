@@ -1,0 +1,5 @@
+# Python 3.8.2rc2
+numpy
+scipy
+matplotlib
+PyQt5
