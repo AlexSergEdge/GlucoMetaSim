@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import numpy as np
+
 from coefficients import *
 from scipy.integrate import quad
 import matplotlib.pyplot as plt
@@ -97,13 +99,40 @@ def IIR(t, IIRb):
 
 
 
-def print_graphs(x, t):
+'''
+Функции для моделирования и отображения
+'''
+def get_updated_init_conditions(x, food, insulin):
+    return [
+        x[-1,0], x[-1,1], x[-1,2], x[-1,3], 
+        x[-1,4] + insulin, 
+        x[-1,5] + kd / ka2 * insulin,
+        x[-1,6], x[-1,7], 
+        x[-1,8] + food,
+        x[-1,9], x[-1,10], x[-1,11], x[-1,12], x[-1,13]
+    ]
+
+def print_graphs(x, t, real=None):
+    
     Gp = x[:,0] # Масса глюкозы в плазме и быстро-наполняюющихся тканях, mg/kg
     Gt = x[:,1] # Масса глюкозы в медленно-наполняющихся тканях, mg/kg
     Gres = G(0, Gp) # Концентрация глюкозы в плазме
-    plt.plot(t, Gres / MG_DL_TO_MMOL_L_CONVENTION_FACTOR, label='Plasma glucose', color='r')
-    plt.title('Plasma glucose, mmol/l')
-    plt.ylabel('G, mmol/l')
-    plt.xlabel('time, min')
-    plt.legend()
-    plt.show()
+    if not real:
+        plt.plot(t, Gres / MG_DL_TO_MMOL_L_CONVENTION_FACTOR, label='Plasma glucose', color='r')
+        plt.title('Plasma glucose, mmol/l')
+        plt.ylabel('G, mmol/l')
+        plt.xlabel('time, min')
+        plt.legend()
+        plt.show()
+    else:
+        real_data = np.array([])
+        for val in real:
+            real_data = np.append(real_data, float(val))
+
+        plt.plot(t, Gres / MG_DL_TO_MMOL_L_CONVENTION_FACTOR, label='Plasma glucose model', color='r')
+        plt.plot(t, real_data, label='Plasma glucose real', color='b')
+        plt.title('Plasma glucose, mmol/l')
+        plt.ylabel('G, mmol/l')
+        plt.xlabel('time, min')
+        plt.legend()
+        plt.show()

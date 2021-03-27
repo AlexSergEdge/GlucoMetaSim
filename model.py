@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import os
 import numpy as np
 
 from utils import solve_quadratic_equasion
@@ -130,17 +131,6 @@ def simulate(
         dZdt = -(fex(t, Y, HRb)/ Tin + 1 / Tex) * Z + fex(t, Y, HRb)
 
         return [dGpdt, dGtdt, dIldt, dIpdt, dIsc1dt, dIsc2dt, dIonedt, dIddt, dQsto1dt, dQsto2dt, dQgutdt, dXdt, dYdt, dZdt]
-
-    def get_updated_init_conditions(x, food, insulin):
-        return [
-            x[-1,0], x[-1,1], x[-1,2], x[-1,3], 
-            x[-1,4] + insulin, 
-            x[-1,5] + kd / ka2 * insulin,
-            x[-1,6], x[-1,7], 
-            x[-1,8] + food,
-            x[-1,9], x[-1,10], x[-1,11], x[-1,12], x[-1,13]
-        ]
-
     
     if meal_time > 0 and meal_time == injection_time:
         t = np.linspace(0, time, samples)  # начало, завершение моделирования, число отсчетов
@@ -163,9 +153,7 @@ def simulate(
     return x, t
 
 
-
-if __name__ == "__main__":
-
+def test_example():
     test_Gpb = (4.8 * MG_DL_TO_MMOL_L_CONVENTION_FACTOR) * VG
     test_Gp0 = (10.2 * MG_DL_TO_MMOL_L_CONVENTION_FACTOR) * VG
     food_and_insulin_time = 25  # Пока что жестко прошито, в планах разделение
@@ -175,16 +163,56 @@ if __name__ == "__main__":
         samples=420,  # число временных отсчетов
         BW=77,  # вес тела
         D=0,  # масса принятых углеводов, мг
-        Gpb=test_Gpb,  # базальный уровень глюкозы в крови
+        Gpb=test_Gp0,  # базальный уровень глюкозы в крови
         Gp0=test_Gp0,  # начальный уровень глюкозы в крови
         Djins=0,  # доза быстрого инсулина
         IIRb=2,  # базальный уровень инсулина
         meal_time=food_and_insulin_time,  # время приема пищи, мин с начала моделирования
         injection_time=food_and_insulin_time,  # время введения нисулина, мин с начала моделирования
-        ex_on=False,  # включение/выключение физической активности
+        ex_on=True,  # включение/выключение физической активности
         ex_start=20,  # время начала упражнения
         ex_finish=80,  # время завершения упражнения
         ex_hr=120,  # ЧСС во время упражнения
         HRb=60  # базальное значение ЧСС
     )
     print_graphs(res, t)
+
+def str2bool(v):
+    return v.lower() in ("yes", "true", "t", "1")
+
+
+def test_on_text_data():
+    with open(os.path.join('experiments','data.txt'), 'r') as file:
+        text = file.read()
+
+    with open(os.path.join('experiments','real_bg.txt'), 'r') as file:
+        real_data = file.read()
+        
+    for line, real in zip(text.split('\n')[:-1], real_data.split('\n')[:-1]):
+        line = line.split(',')
+        res, t = simulate(
+            time=int(line[0]),  # длительность моделирования, мин 
+            samples=int(line[1]),  # число временных отсчетов
+            BW=int(line[2]),  # вес тела
+            D=int(line[3]),  # масса принятых углеводов, мг
+            Gpb=float(line[4]) * MG_DL_TO_MMOL_L_CONVENTION_FACTOR * VG,  # базальный уровень глюкозы в крови
+            Gp0=float(line[5]) * MG_DL_TO_MMOL_L_CONVENTION_FACTOR * VG,  # начальный уровень глюкозы в крови
+            Djins=float(line[6]),  # доза быстрого инсулина
+            IIRb=float(line[7]),  # базальный уровень инсулина
+            meal_time=int(line[8]),  # время приема пищи, мин с начала моделирования
+            injection_time=int(line[9]),  # время введения нисулина, мин с начала моделирования
+            ex_on=str2bool(line[10]),  # включение/выключение физической активности
+            ex_start=int(line[11]),  # время начала упражнения
+            ex_finish=int(line[12]),  # время завершения упражнения
+            ex_hr=float(line[13]),  # ЧСС во время упражнения
+            HRb=float(line[14])  # базальное значение ЧСС
+        )
+        real = real.split(',')
+        print(real)
+        print_graphs(res, t, real)
+
+
+if __name__ == "__main__":
+    # test_example()
+    test_on_text_data()
+    
