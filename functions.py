@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import os
 import numpy as np
 
 from coefficients import *
@@ -112,7 +113,7 @@ def get_updated_init_conditions(x, food, insulin):
         x[-1,9], x[-1,10], x[-1,11], x[-1,12], x[-1,13]
     ]
 
-def print_graphs(x, t, real=None):
+def print_graphs(x, t, name ,real=None):
     
     Gp = x[:,0] # Масса глюкозы в плазме и быстро-наполняюющихся тканях, mg/kg
     Gt = x[:,1] # Масса глюкозы в медленно-наполняющихся тканях, mg/kg
@@ -123,7 +124,9 @@ def print_graphs(x, t, real=None):
         plt.ylabel('G, mmol/l')
         plt.xlabel('time, min')
         plt.legend()
-        plt.show()
+        # plt.show()
+        plt.savefig(os.path.join('results','bg_model',f'bg_model_{name}.png'))
+        plt.close()
     else:
         real_data = np.array([])
         for val in real:
@@ -135,4 +138,6 @@ def print_graphs(x, t, real=None):
         plt.ylabel('G, mmol/l')
         plt.xlabel('time, min')
         plt.legend()
-        plt.show()
+        # plt.show()
+        plt.savefig(os.path.join('results','bg_compare',f'bg_compare_{name}.png'))
+        plt.close()

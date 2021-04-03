@@ -50,12 +50,9 @@ def plot_glucose(glucose_info, show_plot=True):
             plt.ylabel('G, mmol/l')
             plt.xlabel('time, min')
             plt.legend()
-            plt.show()
-
-        # print(start_time)
-        # print(end_time)
-        # print(final_time_list)
-        # exit(0)
+            # plt.show()
+            plt.savefig(os.path.join('results','bg_real',f'bg_real_{info["name"]}.png'))
+            plt.close()
 
         bg_values.append(final_glucose_list)
         time_values.append(final_time_list)
@@ -80,7 +77,9 @@ def plot_hr(heart_rate_info, show_plot=True):
             plt.ylabel('bpm')
             plt.xlabel('time, min')
             plt.legend()
-            plt.show()
+            #plt.show()
+            plt.savefig(os.path.join('results','hr',f'hr_{info["name"]}.png'))
+            plt.close()
 
         hr_values.append(hr_arr)
         time_values.append(t_arr)
@@ -245,7 +244,7 @@ def get_timespans(time_values):
 if __name__ == "__main__":
     glucose_info = get_glucose_info()
     
-    bg_values, time_values = plot_glucose(glucose_info, False)
+    bg_values, time_values = plot_glucose(glucose_info, True)
     print(len(time_values[0]))
 
     start_glucoses = [i[0] for i in bg_values]
@@ -256,7 +255,7 @@ if __name__ == "__main__":
 
     heart_rate_info, average_hrs = get_heart_rate_info()
     print('Average HRs:', average_hrs)
-    hr_values, time_values = plot_hr(heart_rate_info, False)
+    hr_values, time_values = plot_hr(heart_rate_info, True)
 
     timespans_hr, start_times_hr, finish_times_hr = get_timespans(time_values)
 

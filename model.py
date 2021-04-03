@@ -175,7 +175,7 @@ def test_example():
         ex_hr=120,  # ЧСС во время упражнения
         HRb=60  # базальное значение ЧСС
     )
-    print_graphs(res, t)
+    print_graphs(res, t, 'test')
 
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
@@ -187,8 +187,11 @@ def test_on_text_data():
 
     with open(os.path.join('experiments','real_bg.txt'), 'r') as file:
         real_data = file.read()
-        
+    
+    counter = 0
+
     for line, real in zip(text.split('\n')[:-1], real_data.split('\n')[:-1]):
+        counter += 1
         line = line.split(',')
         res, t = simulate(
             time=int(line[0]),  # длительность моделирования, мин 
@@ -208,11 +211,10 @@ def test_on_text_data():
             HRb=float(line[14])  # базальное значение ЧСС
         )
         real = real.split(',')
-        print(real)
-        print_graphs(res, t, real)
+        print_graphs(res, t, counter, real)
 
 
 if __name__ == "__main__":
-    # test_example()
+    test_example()
     test_on_text_data()
     
