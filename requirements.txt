@@ -3,3 +3,4 @@ numpy
 scipy
 matplotlib
 PyQt5
+sklearn

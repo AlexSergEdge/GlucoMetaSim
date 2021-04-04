@@ -2,9 +2,12 @@
 # -*- coding: utf-8 -*-
 import os
 import numpy as np
+import math
 
 from coefficients import *
 from scipy.integrate import quad
+from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error
+
 import matplotlib.pyplot as plt
 
 '''Функции'''
@@ -78,9 +81,9 @@ def Qsto(t, Qsto1, Qsto2):
     return Qsto1 + Qsto2
 
 # Динамический параметр опустошения желудка
-def kempt(t, Qsto1, Qsto2, D, meal_time):
+def kempt(t, Qsto1, Qsto2, D, meal_time, alphas, betas):
     if D != 0 and t > meal_time:
-        return kmin + (kmax - kmin) / 2.0 * (tanh(alphas * (Qsto(t, Qsto1, Qsto2) - b * D)) - tanh(betas * (Qsto(t, Qsto1, Qsto2) - d * D)) + 2.0)
+        return kmin + (kmax - kmin) / 2.0 * (math.tanh(alphas * (Qsto(t, Qsto1, Qsto2) - b * D)) - math.tanh(betas * (Qsto(t, Qsto1, Qsto2) - d * D)) + 2.0)
     else:
         return kmin
 
@@ -131,6 +134,14 @@ def print_graphs(x, t, name ,real=None):
         real_data = np.array([])
         for val in real:
             real_data = np.append(real_data, float(val))
+
+
+        # calculate MSE
+        mse = mean_absolute_error(real_data / MG_DL_TO_MMOL_L_CONVENTION_FACTOR, Gres / MG_DL_TO_MMOL_L_CONVENTION_FACTOR)
+        print(f'Training {name}\nMSE: {math.sqrt(mse)}')
+
+        mape = mean_absolute_percentage_error(real_data / MG_DL_TO_MMOL_L_CONVENTION_FACTOR, Gres / MG_DL_TO_MMOL_L_CONVENTION_FACTOR)
+        print(f'MAPE: {mape}')
 
         plt.plot(t, Gres / MG_DL_TO_MMOL_L_CONVENTION_FACTOR, label='Plasma glucose model', color='r')
         plt.plot(t, real_data, label='Plasma glucose real', color='b')

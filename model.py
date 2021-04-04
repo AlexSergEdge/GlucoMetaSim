@@ -122,8 +122,8 @@ def simulate(
         '''Глюкоза в пищеварительном тракте'''
         # ВАЖНО: Если прием пищи мгновенный (по умолчанию), ingestion(t) всегда 0, а Qsto10 = D
         dQsto1dt = -kgri *  Qsto1 + ingestion(t)
-        dQsto2dt = -kempt(t, Qsto1, Qsto2, D, meal_time) * Qsto2 + kgri * Qsto1
-        dQgutdt = -kabs * Qgut + kempt(t, Qsto1, Qsto2, D, meal_time) * Qsto2        
+        dQsto2dt = -kempt(t, Qsto1, Qsto2, D, meal_time, alphas, betas) * Qsto2 + kgri * Qsto1
+        dQgutdt = -kabs * Qgut + kempt(t, Qsto1, Qsto2, D, meal_time, alphas, betas) * Qsto2        
         '''Инсулин в межклеточной жидкости'''
         dXdt = -p2U * X + p2U * (I(t, Ip) - Ib)  # was deleted - Ib
         '''Физическая активность'''
