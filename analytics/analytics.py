@@ -46,9 +46,9 @@ def plot_glucose(glucose_info, show_plot=True):
 
         if show_plot:
             plt.plot(final_time_list, final_glucose_list, label='Glucose', color='y')
-            plt.title('Plasma glucose')
-            plt.ylabel('G, mmol/l')
-            plt.xlabel('time, min')
+            plt.title('Глюкоза в плазме крови')
+            plt.ylabel('Концентрация, ммоль/л')
+            plt.xlabel('время, мин')
             plt.legend()
             # plt.show()
             plt.savefig(os.path.join('results','bg_real',f'bg_real_{info["name"]}.png'))
@@ -73,9 +73,9 @@ def plot_hr(heart_rate_info, show_plot=True):
         
         if show_plot:
             plt.plot(t_arr, hr_arr, label='HR', color='r')
-            plt.title('HR')
-            plt.ylabel('bpm')
-            plt.xlabel('time, min')
+            plt.title('Частота сердечных сокращений')
+            plt.ylabel('ЧСС, уд./мин')
+            plt.xlabel('время, мин')
             plt.legend()
             #plt.show()
             plt.savefig(os.path.join('results','hr',f'hr_{info["name"]}.png'))
@@ -135,10 +135,10 @@ CARB_INTAKE = [
 ]
 # [dose, time]
 INSULIN_INTAKE = [
-    [250, 0],  #250
+    [int(1.0 / (0.0164 + 0.0018) * 6.0), 0],  #250  300
     [0, 0], 
     [0, 0], 
-    [200, 0],  # [0, 0]
+    [int(1.0 / (0.0164 + 0.0018) * 6.0), 0],  # [0, 0]  # 200 300     1 / (ka1 + kd) * 6 =  kd = 0.0164  # скорость диссоциации инсулина, 1/min ka1 = 0.0018
     [0, 0], 
     [0, 75],  # [0, 0] 
     [0, 0]

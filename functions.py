@@ -116,16 +116,16 @@ def get_updated_init_conditions(x, food, insulin):
         x[-1,9], x[-1,10], x[-1,11], x[-1,12], x[-1,13]
     ]
 
-def print_graphs(x, t, name ,real=None):
+def print_graphs(x, t, name, real=None, food=None, insulin=None):
     
     Gp = x[:,0] # Масса глюкозы в плазме и быстро-наполняюющихся тканях, mg/kg
     Gt = x[:,1] # Масса глюкозы в медленно-наполняющихся тканях, mg/kg
     Gres = G(0, Gp) # Концентрация глюкозы в плазме
     if not real:
-        plt.plot(t, Gres / MG_DL_TO_MMOL_L_CONVENTION_FACTOR, label='Plasma glucose', color='r')
-        plt.title('Plasma glucose, mmol/l')
-        plt.ylabel('G, mmol/l')
-        plt.xlabel('time, min')
+        plt.plot(t, Gres / MG_DL_TO_MMOL_L_CONVENTION_FACTOR, label='Глюкоза в плазме', color='r')
+        plt.title('Глюкоза в плазме крови, ммоль/л')
+        plt.ylabel('Концентрация, ммоль/л')
+        plt.xlabel('время, мин')
         plt.legend()
         # plt.show()
         plt.savefig(os.path.join('results','bg_model',f'bg_model_{name}.png'))
@@ -143,11 +143,28 @@ def print_graphs(x, t, name ,real=None):
         mape = mean_absolute_percentage_error(real_data / MG_DL_TO_MMOL_L_CONVENTION_FACTOR, Gres / MG_DL_TO_MMOL_L_CONVENTION_FACTOR)
         print(f'MAPE: {mape}')
 
-        plt.plot(t, Gres / MG_DL_TO_MMOL_L_CONVENTION_FACTOR, label='Plasma glucose model', color='r')
-        plt.plot(t, real_data, label='Plasma glucose real', color='b')
-        plt.title('Plasma glucose, mmol/l')
-        plt.ylabel('G, mmol/l')
-        plt.xlabel('time, min')
+        plt.plot(t, Gres / MG_DL_TO_MMOL_L_CONVENTION_FACTOR, label='Глюкоза в плазме (модель)', color='r')
+        plt.plot(t, real_data, label='Глюкоза в плазме (реальная)', color='b')
+        plt.title('Глюкоза в плазме крови, ммоль/л')
+        plt.ylabel('Концентрация, ммоль/л')
+        plt.xlabel('время, мин')
+
+        bottom, top = plt.ylim()
+        food_y_text = (bottom + top) / 2
+        ins_y_text = bottom + (top - bottom) / 4
+
+        # 1 μIU/mL = 6.00 pmol/L
+        # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6501531/s
+
+        if food:
+            plt.axvline(x=food[0], c='orange', ymax=1.0, lw=1)
+            food_info = "Прием пищи\n({} мг.)".format(food[1])
+            plt.text(food[0] + 7, food_y_text, food_info, rotation=90, fontsize=9, ha='center')
+        if insulin:
+            plt.axvline(x=insulin[0], c='cyan', ymax=1.0, lw=1)
+            ins_info = 'Введение инсулина\n({:.2f} ед.)'.format(insulin[1] * (kd + ka1) / 6.00)
+            plt.text(insulin[0] + 4, ins_y_text, ins_info, rotation=90, fontsize=9, ha='center')
+
         plt.legend()
         # plt.show()
         plt.savefig(os.path.join('results','bg_compare',f'bg_compare_{name}.png'))

@@ -211,7 +211,14 @@ def test_on_text_data():
             HRb=float(line[14])  # базальное значение ЧСС
         )
         real = real.split(',')
-        print_graphs(res, t, counter, real)
+        food = None
+        insulin = None
+        if int(line[3]):
+            food = (int(line[8]), int(line[3]))
+        if int(line[6]):
+            insulin = (int(line[9]), int(line[6]))
+
+        print_graphs(res, t, counter, real, food, insulin)
 
 
 if __name__ == "__main__":
