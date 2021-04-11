@@ -216,6 +216,9 @@ def test_on_text_data():
             ex_hr=float(line[13]),  # ЧСС во время упражнения
             HRb=float(line[14])  # базальное значение ЧСС
         )
+        print(f'### Training length: {int(line[12]) - int(line[11])} min')
+        print(f'### Start glucose: {float(line[5]) * MG_DL_TO_MMOL_L_CONVENTION_FACTOR} mg/dl')
+
         real = real.split(',')
         food = None
         insulin = None

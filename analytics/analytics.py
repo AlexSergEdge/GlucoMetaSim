@@ -108,9 +108,9 @@ def plot_glucose(glucose_info, show_plot=True):
             t_prev = t
 
         if show_plot:
-            plt.plot(final_time_list, final_glucose_list, label='Glucose', color='y')
+            plt.plot(final_time_list, np.asarray(final_glucose_list) * 18.0182, label='Glucose', color='y')
             plt.title('Глюкоза в плазме крови')
-            plt.ylabel('Концентрация, ммоль/л')
+            plt.ylabel('Концентрация, мг/дл')
             plt.xlabel('время, мин')
             plt.legend()
             # plt.show()
@@ -193,7 +193,9 @@ def get_glucose_info():
 
 # Получает и сохраняет в словарь данные о ЧСС из файла
 def get_heart_rate_info():
-    average_hrs = []      
+    average_hrs = []
+    max_hrs = []
+    min_hrs = []      
     heart_rate_info = []   
     for training in TRAININGS.items():
         required_date = training[1]['date']
@@ -226,6 +228,8 @@ def get_heart_rate_info():
                 heart_rate_list.append((float(heart_rate), int(time)))
 
             average_hrs.append(hr_accum / hr_samples)
+            max_hrs.append(max(heart_rate_list)[0])
+            min_hrs.append(min(heart_rate_list)[0])
 
             return_dict = {
                 'name': training[0],
@@ -233,7 +237,7 @@ def get_heart_rate_info():
                 'hr_list': heart_rate_list 
             }
             heart_rate_info.append(return_dict)
-    return heart_rate_info, average_hrs
+    return heart_rate_info, average_hrs, max_hrs, min_hrs
 
 
 # Получает продолжительность измерений
@@ -258,7 +262,7 @@ if __name__ == "__main__":
     timespans_bg, start_times_bg, finish_times_bg = get_timespans(time_values)
     print(timespans_bg[0])
 
-    heart_rate_info, average_hrs = get_heart_rate_info()
+    heart_rate_info, average_hrs, max_hrs, min_hrs = get_heart_rate_info()
     print('Average HRs:', average_hrs)
     hr_values, time_values = plot_hr(heart_rate_info, True)
 
@@ -315,6 +319,12 @@ if __name__ == "__main__":
             ex_start = ex_start_times[i]
             ex_finish = ex_finish_times[i]
             ex_hr = average_hrs[i]
+
+            print(f'###### Traning {i} info:')
+            print(f'### Max HR {max_hrs[i]}')
+            print(f'### Min HR {min_hrs[i]}')
+            print(f'### Avg HR {ex_hr}')
+
             HRb = 60
             file.write(f'{time},{samples},{BW},{D},{Gpb},{Gp0},{Djins},{IIRb},{meal_time},{injection_time},{ex_on},{ex_start},{ex_finish},{ex_hr},{HRb}\n')
          
