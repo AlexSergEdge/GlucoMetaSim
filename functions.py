@@ -4,7 +4,6 @@ import os
 import numpy as np
 import math
 
-import xlwings
 import matplotlib.pyplot as plt
 from scipy.integrate import quad
 from scipy.stats import pearsonr, spearmanr, median_absolute_deviation
@@ -12,6 +11,7 @@ from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error,
 
 from coefficients import *
 
+import xlwings
 
 '''Функции'''
 # Эндогенное производство глюкозы
