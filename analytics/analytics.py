@@ -3,9 +3,73 @@
 
 import csv
 import datetime
+import os
+
 import numpy as np
 import matplotlib.pyplot as plt
-import os
+
+
+# Продолжительность и дата тренировок
+TRAININGS = {
+    '1': {
+        'date': '2020-12-11',
+        'start': '13:29',
+        'finish': '14:05'
+    },
+    '2': {
+        'date': '2020-12-11',
+        'start': '18:10',
+        'finish': '19:09'
+    },
+    '3': {
+        'date': '2020-12-12',
+        'start': '14:18',
+        'finish': '14:48'
+    },
+    '4': {
+        'date': '2020-12-13',
+        'start': '17:19',
+        'finish': '18:18'
+    },
+    '5': {
+        'date': '2020-12-23',
+        'start': '13:04',
+        'finish': '13:54' 
+    },
+    '6': {
+        'date': '2020-12-25',
+        'start': '19:39',
+        'finish': '21:35'
+    },
+    '7': {
+        'date': '2020-12-27',
+        'start': '17:33',
+        'finish': '18:47'
+    }
+}
+
+# Информация о приемах пищи в формате [mass, time]
+CARB_INTAKE = [
+    [0, 0], 
+    [0, 0], 
+    [0, 0], 
+    [0, 0], 
+    [0, 0], 
+    [48000, 75],  # [0, 0]
+    [0, 0]
+]
+
+# Информация о дозах инсулина в формате [dose, time]
+INSULIN_INTAKE = [
+    [int(1.0 / (0.0164 + 0.0018) * 6.0), 0],
+    [0, 0], 
+    [0, 0], 
+    [int(1.0 / (0.0164 + 0.0018) * 6.0), 0],
+    [0, 0], 
+    [0, 75],  # [0, 0] 
+    [0, 0]
+]
+
 
 def to_minutes(timestr):
     minutes = 0
@@ -14,11 +78,10 @@ def to_minutes(timestr):
     return minutes
 
 
+# Достает из данных ряд со значениями глюкозы и времени (+ интерполирует глюкозу и сохраняет график)
 def plot_glucose(glucose_info, show_plot=True):
-
     bg_values = []
     time_values = []
-
 
     for info in glucose_info:
 
@@ -59,6 +122,8 @@ def plot_glucose(glucose_info, show_plot=True):
 
     return bg_values, time_values
 
+
+# Достает из данных ряд со значениями ЧСС и времени (+ сохраняет график)
 def plot_hr(heart_rate_info, show_plot=True):
     
     hr_values = []
@@ -85,67 +150,8 @@ def plot_hr(heart_rate_info, show_plot=True):
         time_values.append(t_arr)
     return hr_values, time_values
 
-TRAININGS = {
-    '1': {
-        'date': '2020-12-11',
-        'start': '13:29',
-        'finish': '14:05'
-    },
-    '2': {
-        'date': '2020-12-11',
-        'start': '18:10',
-        'finish': '19:09'
-    },
-    '3': {
-        'date': '2020-12-12',
-        'start': '14:18',
-        'finish': '14:48'
-    },
-    '4': {
-        'date': '2020-12-13',
-        'start': '17:19',
-        'finish': '18:18'
-    },
-    '5': {
-        'date': '2020-12-23',
-        'start': '13:04',
-        'finish': '13:54' 
-    },
-    '6': {
-        'date': '2020-12-25',
-        'start': '19:39',
-        'finish': '21:35'
-    },
-    '7': {
-        'date': '2020-12-27',
-        'start': '17:33',
-        'finish': '18:47'
-    }
-}
 
-# [mass, time]
-CARB_INTAKE = [
-    [0, 0], 
-    [0, 0], 
-    [0, 0], 
-    [0, 0], 
-    [0, 0], 
-    [48000, 75],  # [0, 0]
-    [0, 0]
-]
-# [dose, time]
-INSULIN_INTAKE = [
-    [int(1.0 / (0.0164 + 0.0018) * 6.0), 0],  #250  300
-    [0, 0], 
-    [0, 0], 
-    [int(1.0 / (0.0164 + 0.0018) * 6.0), 0],  # [0, 0]  # 200 300     1 / (ka1 + kd) * 6 =  kd = 0.0164  # скорость диссоциации инсулина, 1/min ka1 = 0.0018
-    [0, 0], 
-    [0, 75],  # [0, 0] 
-    [0, 0]
-]
-
-
-
+# Получает и сохраняет в словарь данные о глюкозе из файла
 def get_glucose_info():
     glucose_info = []
     with open(os.path.join('analytics','data','BG.txt'), 'r') as bg_file:
@@ -185,6 +191,7 @@ def get_glucose_info():
     return glucose_info
 
 
+# Получает и сохраняет в словарь данные о ЧСС из файла
 def get_heart_rate_info():
     average_hrs = []      
     heart_rate_info = []   
@@ -218,9 +225,6 @@ def get_heart_rate_info():
                 hr_samples += 1
                 heart_rate_list.append((float(heart_rate), int(time)))
 
-
-            #heart_rate_list = sorted(heart_rate_list, key=lambda x: x[1])
-
             average_hrs.append(hr_accum / hr_samples)
 
             return_dict = {
@@ -232,6 +236,7 @@ def get_heart_rate_info():
     return heart_rate_info, average_hrs
 
 
+# Получает продолжительность измерений
 def get_timespans(time_values):
     start_times = [i[0] for i in time_values]
     finish_times = [i[-1] for i in time_values]
@@ -263,6 +268,8 @@ if __name__ == "__main__":
     ex_start_times = []
     ex_real_start_times = []
     
+    # Далее находится общее время старта и завершения тренировки (т.к. данные не полностью перекрываются)
+
     for sbg, shr in zip(start_times_bg, start_times_hr): 
         modelling_start_times.append(0)
         if sbg < shr:
@@ -280,16 +287,17 @@ if __name__ == "__main__":
         else:
             ex_finish_times.append(timespan_bg)
 
+    # Выводим готовые времена
     print('modelling_start_times: ', modelling_start_times)
     print('modelling_finish_times: ', modelling_finish_times)
     print('ex_start_times: ', ex_start_times)
     print('ex_finish_times: ', ex_finish_times)
 
+    # Записываем все в файлы
     with open(os.path.join('experiments', 'real_bg.txt'), 'w+') as file:
         for i in range(len(TRAININGS.keys())):
             line = ','.join(str(v) for v in bg_values[i])
             file.write(line + '\n')
-
 
     with open(os.path.join('experiments', 'data.txt'), 'w+') as file:
         for i in range(len(TRAININGS.keys())):

@@ -4,3 +4,4 @@ scipy
 matplotlib
 PyQt5
 sklearn
+xlwings

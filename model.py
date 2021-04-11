@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import os
+from math import tanh
+
 import numpy as np
+from scipy.integrate import odeint
 
 from utils import solve_quadratic_equasion
-from scipy.integrate import odeint
-from math import tanh
 from coefficients import *
 from functions import *
+
 
 def simulate( 
     time,  # длительность моделирования, мин 
@@ -137,6 +139,7 @@ def simulate(
         x10 = [Gp0, Gt0, Il0, Ip0, Isc10, Isc20, Ione0, Id0, Qsto10, Qsto20, Qgut0, X0, Y0, Z0]  # начальные условия
         t1 = np.linspace(0, meal_time, meal_time)
         x1 = odeint(ode_system, x10, t1)
+        # Когда происходит прием пищи и ввод инсулина - "разрываем" моделирование
         x20 = get_updated_init_conditions(x1, D, Djins)
         t2 = np.linspace(meal_time, time + 1, time - meal_time + 1)
         x2 = odeint(ode_system, x20, t2, hmax=1)
@@ -153,6 +156,7 @@ def simulate(
     return x, t
 
 
+# Простой пример для проверки
 def test_example():
     test_Gpb = (4.8 * MG_DL_TO_MMOL_L_CONVENTION_FACTOR) * VG
     test_Gp0 = (10.2 * MG_DL_TO_MMOL_L_CONVENTION_FACTOR) * VG
@@ -177,19 +181,21 @@ def test_example():
     )
     print_graphs(res, t, 'test')
 
+
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
 
 
+# Функция открывает файлы с данными (входными для модели и реальными)
+# и запускает моделирование для каждой из тренировок
+# Получив результаты моделирования, функция вызывает print_graphs из functions.py
+# print_graphs сохраняет необходимые графики и выводит количественные оценки
 def test_on_text_data():
     with open(os.path.join('experiments','data.txt'), 'r') as file:
         text = file.read()
-
     with open(os.path.join('experiments','real_bg.txt'), 'r') as file:
         real_data = file.read()
-    
     counter = 0
-
     for line, real in zip(text.split('\n')[:-1], real_data.split('\n')[:-1]):
         counter += 1
         line = line.split(',')
