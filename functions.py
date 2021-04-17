@@ -206,3 +206,40 @@ def print_graphs(x, t, name, real=None, food=None, insulin=None):
         plt.legend()
         plt.savefig(os.path.join('results','bg_compare',f'bg_compare_{name}.png'))
         plt.close()
+
+
+def print_multiple_graphs(series, time, labels, colors, linestyles_list, name, borders, training_time):
+
+    max_y = 0
+    min_y = float('inf')
+
+    for s, t, l, c, ls in zip(series, time, labels, colors, linestyles_list):
+        plt.plot(t, s, label=l, color=c, linestyle=ls)
+        curr_max_y = max(s)
+        curr_min_y = min(s)
+        if curr_max_y > max_y:
+            max_y = curr_max_y
+        if curr_min_y < min_y:
+            min_y = curr_min_y
+
+    if min_y - 20 >= borders[0] - 20:
+        min_y = borders[0] - 20
+    if max_y + 20 <= borders[1] + 20:
+        max_y = borders[1] + 20
+
+
+    plt.hlines(borders[0], xmin=0, xmax=time[0][-1], color='orange', linestyles='dashed')
+    plt.hlines(borders[1], xmin=0, xmax=time[0][-1], color='orange', linestyles='dashed')
+    
+    # y = np.arange(0, 300, 1)
+    plt.fill_betweenx([min_y - 20, max_y + 20],  training_time[0],  training_time[1], alpha=0.3, color='blue')
+    plt.fill_between(time[0], borders[0], borders[1], alpha=0.3, color='orange')
+    
+    plt.title('Глюкоза в плазме крови, мг/дл')
+    plt.ylabel('Концентрация, мг/дл')
+    plt.xlabel('время, мин')
+    plt.legend()
+    plt.savefig(os.path.join('results','modelling',f'{name}.png'))
+    plt.close()
+
+

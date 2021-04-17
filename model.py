@@ -230,7 +230,105 @@ def test_on_text_data():
         print_graphs(res, t, counter, real, food, insulin)
 
 
-if __name__ == "__main__":
-    test_example()
-    test_on_text_data()
+def u_to_pmoll(dose_u):
+    return int(dose_u / (kd + ka1) * 6.0)
+
+def mmoll_to_glucose_plasma_mass(conc_mmoll):
+    return conc_mmoll * MG_DL_TO_MMOL_L_CONVENTION_FACTOR * VG
+
+CONTROL_CASES = {
+    'case1': {
+        'Gpb': 9.5,
+        'Gp0': 9.5,
+        'Dvals': [0],
+        'Ivals': [0],
+        'labels': ['без приема пищи/инъекции'],
+        'colors': ['red'],
+        'linestyles': ['solid'],
+        'time': 180
+    },
+    'case2': {
+        'Gpb': 5.5,
+        'Gp0': 5.5,
+        'Dvals': [0, 18000],
+        'Ivals': [0, 0],
+        'labels': ['без приема пищи/инъекции', 'при оптимальном приеме пищи'],
+        'colors': ['red', 'green'],
+        'linestyles': ['solid','solid'],
+        'time': 180
+    },
+    'case3': {
+        'Gpb': 4.2,
+        'Gp0': 4.2,
+        'Dvals': [0, 24000, 48000, 9000],
+        'Ivals': [0, 0, 0, 0],
+        'labels': ['без приема пищи/инъекции', 'при оптимальном приеме пищи', 'при переедании', 'при недоедании'],
+        'colors': ['red', 'green', 'black', 'purple'],
+        'linestyles': ['solid','solid','dashed','dotted'],
+        'time': 180
+    },
+    'case4': {
+        'Gpb': 17.0,
+        'Gp0': 17.0,
+        'Dvals': [0, 0, 0, 0],
+        'Ivals': [0, 0.32, 1, 0.1],
+        'labels': ['без приема пищи/инъекции', 'при оптимальной инъекции', 'при передозировке инсулина', 'при недостатке инсулина)'],
+        'colors': ['red', 'blue', 'black', 'purple'],
+        'linestyles': ['solid','solid', 'dashed','dotted'],
+        'time': 180
+    },
+}
+
+
+# Тренировки фиксированные по ЧСС и длительности
+def test_control_cases():
     
+    # Эти параметры неизменны
+    BW = 60  # вес тела
+    IIRb = 1.0
+    meal_time = 0
+    injection_time = 0
+    ex_on = True
+    ex_start = 5
+    ex_finish = 65
+    ex_hr = 130
+    HRb = 70
+    
+    for key, val in CONTROL_CASES.items():
+
+        time = val['time']  # длительность моделирования, мин
+        samples = val['time']  # число временных отсчетов
+
+        name = key
+        Gpb = mmoll_to_glucose_plasma_mass(val['Gpb'])
+        Gp0 = mmoll_to_glucose_plasma_mass(val['Gp0'])
+        Dvals = val['Dvals']
+        Ivals = val['Ivals']
+        labels = val['labels']
+        colors = val['colors']
+        linestyles = val['linestyles']
+
+        results = []
+        times = []
+
+        for D, DjinsU in zip(Dvals, Ivals):
+            Djins = u_to_pmoll(DjinsU)
+
+            res, t = simulate(time, samples, BW, D, Gpb, Gp0, Djins, IIRb, meal_time, injection_time, ex_on, ex_start, ex_finish, ex_hr, HRb)
+            Gp = res[:,0] # Масса глюкозы в плазме и быстро-наполняюющихся тканях, mg/kg
+            Gt = res[:,1] # Масса глюкозы в медленно-наполняющихся тканях, mg/kg
+            Gres = G(0, Gp) # Концентрация глюкозы в плазме
+            results.append(Gres)
+            times.append(t)
+
+        # Верхняя граница корридора
+        G_high = 7.4 * MG_DL_TO_MMOL_L_CONVENTION_FACTOR
+        # Нижняя граница корридора
+        G_low = 4.8 * MG_DL_TO_MMOL_L_CONVENTION_FACTOR
+        print_multiple_graphs(results, times, labels, colors, linestyles, name, (G_low, G_high), (ex_start, ex_finish))
+
+
+if __name__ == "__main__":
+    # test_example()
+    # test_on_text_data()
+    test_control_cases()
