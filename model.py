@@ -10,24 +10,66 @@ from utils import solve_quadratic_equasion
 from coefficients import *
 from functions import *
 
+class Simulation():
+    def __init__(
+        self,
+        time,  # длительность моделирования, мин 
+        samples,  # число временных отсчетов
+        BW,  # вес тела
+        D,  # масса принятых углеводов, мг
+        Gpb,  # базальный уровень глюкозы в крови
+        Gp0,  # начальный уровень глюкозы в крови
+        Djins,  # доза быстрого инсулина
+        IIRb,  # базальный уровень инсулина
+        meal_time,  # время приема пищи, мин с начала моделирования
+        injection_time,  # время введения нисулина, мин с начала моделирования
+        ex_on,  # включение/выключение физической активности
+        ex_start,  # время начала упражнения
+        ex_finish,  # время завершения упражнения
+        ex_hr,  # ЧСС во время упражнения
+        HRb  # базальное значение ЧСС
+    ):
+        self.time = time
+        self.samples = samples
+        self.BW = BW
+        self.D = D
+        self.Gpb = Gpb
+        self.Gp0 = Gp0
+        self.Djins = Djins
+        self.IIRb = IIRb
+        self.meal_time = meal_time
+        self.injection_time = injection_time
+        self.ex_on = ex_on
+        self.ex_start = ex_start
+        self.ex_finish = ex_finish
+        self.ex_hr = ex_hr
+        self.HRb = HRb
+    
+    def set_meal(self, meal):
+        self.D = meal
 
-def simulate( 
-    time,  # длительность моделирования, мин 
-    samples,  # число временных отсчетов
-    BW,  # вес тела
-    D,  # масса принятых углеводов, мг
-    Gpb,  # базальный уровень глюкозы в крови
-    Gp0,  # начальный уровень глюкозы в крови
-    Djins,  # доза быстрого инсулина
-    IIRb,  # базальный уровень инсулина
-    meal_time,  # время приема пищи, мин с начала моделирования
-    injection_time,  # время введения нисулина, мин с начала моделирования
-    ex_on,  # включение/выключение физической активности
-    ex_start,  # время начала упражнения
-    ex_finish,  # время завершения упражнения
-    ex_hr,  # ЧСС во время упражнения
-    HRb  # базальное значение ЧСС
-):
+    def set_insulin(self, ins):
+        self.Djins = ins
+
+
+def simulate_enhanced(simulation): 
+    
+    time = simulation.time
+    samples = simulation.samples
+    BW = simulation.BW
+    D = simulation.D
+    Gpb = simulation.Gpb
+    Gp0 = simulation.Gp0
+    Djins = simulation.Djins
+    IIRb = simulation.IIRb
+    meal_time = simulation.meal_time
+    injection_time = simulation.injection_time
+    ex_on = simulation.ex_on
+    ex_start = simulation.ex_start
+    ex_finish = simulation.ex_finish
+    ex_hr = simulation.ex_hr
+    HRb = simulation.HRb
+
     '''Разные параметры'''
     # Параметры для ЖКТ модели, добавлено s чтобы не путать это с alpha и beta для инсулина
     if D != 0:
@@ -154,181 +196,3 @@ def simulate(
         x0 = [Gp0, Gt0, Il0, Ip0, Isc10, Isc20, Ione0, Id0, Qsto10, Qsto20, Qgut0, X0, Y0, Z0] # начальные значения
         x = odeint(ode_system, x0, t, hmax=1)
     return x, t
-
-
-# Простой пример для проверки
-def test_example():
-    test_Gpb = (4.8 * MG_DL_TO_MMOL_L_CONVENTION_FACTOR) * VG
-    test_Gp0 = (10.2 * MG_DL_TO_MMOL_L_CONVENTION_FACTOR) * VG
-    food_and_insulin_time = 25  # Пока что жестко прошито, в планах разделение
-
-    res, t = simulate(
-        time=420,  # длительность моделирования, мин 
-        samples=420,  # число временных отсчетов
-        BW=77,  # вес тела
-        D=0,  # масса принятых углеводов, мг
-        Gpb=test_Gp0,  # базальный уровень глюкозы в крови
-        Gp0=test_Gp0,  # начальный уровень глюкозы в крови
-        Djins=0,  # доза быстрого инсулина
-        IIRb=2,  # базальный уровень инсулина
-        meal_time=food_and_insulin_time,  # время приема пищи, мин с начала моделирования
-        injection_time=food_and_insulin_time,  # время введения нисулина, мин с начала моделирования
-        ex_on=True,  # включение/выключение физической активности
-        ex_start=20,  # время начала упражнения
-        ex_finish=80,  # время завершения упражнения
-        ex_hr=120,  # ЧСС во время упражнения
-        HRb=60  # базальное значение ЧСС
-    )
-    print_graphs(res, t, 'test')
-
-
-def str2bool(v):
-    return v.lower() in ("yes", "true", "t", "1")
-
-
-# Функция открывает файлы с данными (входными для модели и реальными)
-# и запускает моделирование для каждой из тренировок
-# Получив результаты моделирования, функция вызывает print_graphs из functions.py
-# print_graphs сохраняет необходимые графики и выводит количественные оценки
-def test_on_text_data():
-    with open(os.path.join('experiments','data.txt'), 'r') as file:
-        text = file.read()
-    with open(os.path.join('experiments','real_bg.txt'), 'r') as file:
-        real_data = file.read()
-    counter = 0
-    for line, real in zip(text.split('\n')[:-1], real_data.split('\n')[:-1]):
-        counter += 1
-        line = line.split(',')
-        res, t = simulate(
-            time=int(line[0]),  # длительность моделирования, мин 
-            samples=int(line[1]),  # число временных отсчетов
-            BW=int(line[2]),  # вес тела
-            D=int(line[3]),  # масса принятых углеводов, мг
-            Gpb=float(line[4]) * MG_DL_TO_MMOL_L_CONVENTION_FACTOR * VG,  # базальный уровень глюкозы в крови
-            Gp0=float(line[5]) * MG_DL_TO_MMOL_L_CONVENTION_FACTOR * VG,  # начальный уровень глюкозы в крови
-            Djins=float(line[6]),  # доза быстрого инсулина
-            IIRb=float(line[7]),  # базальный уровень инсулина
-            meal_time=int(line[8]),  # время приема пищи, мин с начала моделирования
-            injection_time=int(line[9]),  # время введения нисулина, мин с начала моделирования
-            ex_on=str2bool(line[10]),  # включение/выключение физической активности
-            ex_start=int(line[11]),  # время начала упражнения
-            ex_finish=int(line[12]),  # время завершения упражнения
-            ex_hr=float(line[13]),  # ЧСС во время упражнения
-            HRb=float(line[14])  # базальное значение ЧСС
-        )
-        print(f'### Training length: {int(line[12]) - int(line[11])} min')
-        print(f'### Start glucose: {float(line[5]) * MG_DL_TO_MMOL_L_CONVENTION_FACTOR} mg/dl')
-
-        real = real.split(',')
-        food = None
-        insulin = None
-        if int(line[3]):
-            food = (int(line[8]), int(line[3]))
-        if int(line[6]):
-            insulin = (int(line[9]), int(line[6]))
-
-        print_graphs(res, t, counter, real, food, insulin)
-
-
-def u_to_pmoll(dose_u):
-    return int(dose_u / (kd + ka1) * 6.0)
-
-def mmoll_to_glucose_plasma_mass(conc_mmoll):
-    return conc_mmoll * MG_DL_TO_MMOL_L_CONVENTION_FACTOR * VG
-
-CONTROL_CASES = {
-    'case1': {
-        'Gpb': 9.5,
-        'Gp0': 9.5,
-        'Dvals': [0],
-        'Ivals': [0],
-        'labels': ['без приема пищи/инъекции'],
-        'colors': ['red'],
-        'linestyles': ['solid'],
-        'time': 180
-    },
-    'case2': {
-        'Gpb': 5.5,
-        'Gp0': 5.5,
-        'Dvals': [0, 18000],
-        'Ivals': [0, 0],
-        'labels': ['без приема пищи/инъекции', 'при оптимальном приеме пищи (18 г)'],
-        'colors': ['red', 'green'],
-        'linestyles': ['solid','solid'],
-        'time': 180
-    },
-    'case3': {
-        'Gpb': 4.2,
-        'Gp0': 4.2,
-        'Dvals': [0, 24000, 48000, 9000],
-        'Ivals': [0, 0, 0, 0],
-        'labels': ['без приема пищи/инъекции', 'при оптимальном приеме пищи (24 г)', 'при переедании (48 г)', 'при недоедании (9 г)'],
-        'colors': ['red', 'green', 'black', 'purple'],
-        'linestyles': ['solid','solid','dashed','dotted'],
-        'time': 180
-    },
-    'case4': {
-        'Gpb': 17.0,
-        'Gp0': 17.0,
-        'Dvals': [0, 0, 0, 0],
-        'Ivals': [0, 0.32, 1, 0.1],
-        'labels': ['без приема пищи/инъекции', 'при оптимальной инъекции (0.32 ед)', 'при передозировке инсулина (1 ед)', 'при недостатке инсулина (0.1 ед)'],
-        'colors': ['red', 'blue', 'black', 'purple'],
-        'linestyles': ['solid','solid', 'dashed','dotted'],
-        'time': 180
-    },
-}
-
-
-# Тренировки фиксированные по ЧСС и длительности
-def test_control_cases():
-    
-    # Эти параметры неизменны
-    BW = 60  # вес тела
-    IIRb = 1.0
-    meal_time = 0
-    injection_time = 0
-    ex_on = True
-    ex_start = 5
-    ex_finish = 65
-    ex_hr = 130
-    HRb = 70
-    
-    for key, val in CONTROL_CASES.items():
-
-        time = val['time']  # длительность моделирования, мин
-        samples = val['time']  # число временных отсчетов
-
-        name = key
-        Gpb = mmoll_to_glucose_plasma_mass(val['Gpb'])
-        Gp0 = mmoll_to_glucose_plasma_mass(val['Gp0'])
-        Dvals = val['Dvals']
-        Ivals = val['Ivals']
-        labels = val['labels']
-        colors = val['colors']
-        linestyles = val['linestyles']
-
-        results = []
-        times = []
-
-        for D, DjinsU in zip(Dvals, Ivals):
-            Djins = u_to_pmoll(DjinsU)
-
-            res, t = simulate(time, samples, BW, D, Gpb, Gp0, Djins, IIRb, meal_time, injection_time, ex_on, ex_start, ex_finish, ex_hr, HRb)
-            Gp = res[:,0] # Масса глюкозы в плазме и быстро-наполняюющихся тканях, mg/kg
-            Gt = res[:,1] # Масса глюкозы в медленно-наполняющихся тканях, mg/kg
-            Gres = G(0, Gp) # Концентрация глюкозы в плазме
-            results.append(Gres)
-            times.append(t)
-
-        # Верхняя граница корридора
-        G_high = 7.4 * MG_DL_TO_MMOL_L_CONVENTION_FACTOR
-        # Нижняя граница корридора
-        G_low = 4.8 * MG_DL_TO_MMOL_L_CONVENTION_FACTOR
-        print_multiple_graphs(results, times, labels, colors, linestyles, name, (G_low, G_high), (ex_start, ex_finish))
-
-
-if __name__ == "__main__":
-    # test_example()
-    # test_on_text_data()
-    test_control_cases()
