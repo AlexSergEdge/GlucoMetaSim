@@ -44,6 +44,13 @@ class Simulation():
         self.ex_finish = ex_finish
         self.ex_hr = ex_hr
         self.HRb = HRb
+        self.sim_log = []
+
+    def add_to_sim_log(self, x, t, D, Djins):
+        self.sim_log.append([x, t, D, Djins])
+
+    def get_sim_log(self):
+        return self.sim_log
     
     def set_meal(self, meal):
         self.D = meal
@@ -195,4 +202,6 @@ def simulate_enhanced(simulation):
         t = np.linspace(0, time, samples)  # начало, завершение моделирования, число отсчетов
         x0 = [Gp0, Gt0, Il0, Ip0, Isc10, Isc20, Ione0, Id0, Qsto10, Qsto20, Qgut0, X0, Y0, Z0] # начальные значения
         x = odeint(ode_system, x0, t, hmax=1)
+    
+    simulation.add_to_sim_log(x, t, D, Djins)
     return x, t
