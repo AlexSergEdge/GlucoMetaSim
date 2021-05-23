@@ -7,6 +7,9 @@ from model import simulate_enhanced, Simulation
 from coefficients import *
 from functions import *
 
+from PyQt5 import QtWidgets, QtCore
+import gui
+
 # Константы
 MAX_ALLOWED_GLUCOSE_MMOLL = 15  # Максимальный допустимый уровень глюкозы в начале тренировки
 MIN_ALLOWED_GLUCOSE_MMOLL = 4  # Минимальный допустимый уровень глюкозы в начале тренировки
@@ -312,5 +315,15 @@ def main():
     plot_selection_results(sim, Gh, Gl)
     print(f'Meal: {meal}, Insulin {ins}')
 
+
+class CalculatorApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+
 if __name__ == "__main__":
-    main()
+    # main()
+    app = QtWidgets.QApplication([])
+    window = CalculatorApp()
+    window.show()
+    app.exec_()

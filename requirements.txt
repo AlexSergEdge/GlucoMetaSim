@@ -5,3 +5,4 @@ matplotlib
 PyQt5
 sklearn
 xlwings
+pyqt5-tools
