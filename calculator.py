@@ -7,7 +7,7 @@ from model import simulate_enhanced, Simulation
 from coefficients import *
 from functions import *
 
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 import gui
 
 # Константы
@@ -247,7 +247,7 @@ def find_value_by_ratio(y1, y, y2, val1, val2):
 
 
 
-def plot_selection_results(sim, Gh, Gl):
+def plot_selection_results(sim, Gh, Gl, name):
     
     sel_sim_log = sim.get_sim_log()[:-1]
     final_res = sim.get_sim_log()[-1]
@@ -258,7 +258,7 @@ def plot_selection_results(sim, Gh, Gl):
     times = []
     labels = []
     linestyles = []
-    name = 'Selection process'
+    # name = 'calculated_result'
 
     for simulation in sel_sim_log:
         x = simulation[0]
@@ -312,14 +312,110 @@ def main():
     meal, ins, sim = get_recommendation_from_model(
         bw, hrb, Gh, Gl, glucose, duration, hr
     )
-    plot_selection_results(sim, Gh, Gl)
+    plot_selection_results(sim, Gh, Gl, name)
     print(f'Meal: {meal}, Insulin {ins}')
 
 
 class CalculatorApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
+
+    start_hrb = 65
+    start_bw = 62
+    start_glow = 4.8
+    start_ghigh = 7.4
+
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+        for hr in EXERCISE_HEART_RATE_RANGE:
+            self.comboBoxHR.addItem(str(hr))
+        for duration in EXERCISE_DURATION_RANGE:
+            self.comboBoxDuration.addItem(str(duration))
+        self.pushButtonSimulate.clicked.connect(self.start_simulation)        
+        self.ImageLabel.setStyleSheet("background-color: white")
+        self.lineEditBW.setText(str(self.start_bw))
+        self.lineEditHRb.setText(str(self.start_hrb))
+        self.lineEditGLow.setText(str(self.start_glow))
+        self.lineEditGHigh.setText(str(self.start_ghigh))
+
+        self.labelDRec.setText('-')
+        self.labelIRec.setText('-')
+
+        self.lcdNumberResultGlucose.display('--')
+
+
+    def start_simulation(self):
+        
+        glucose = self.lineEditGlucose.text()
+        if not glucose:
+            self.errorLabel.setText('* введите глюкозу')
+            self.errorLabel.setStyleSheet("color: red")
+        else:
+            self.errorLabel.clear()
+            glucose = float(glucose)
+        
+        ghigh = self.lineEditGHigh.text()
+        if not ghigh:
+            self.errorLabelGHigh.setText('* введите границу')
+            self.errorLabelGHigh.setStyleSheet("color: red")
+        else:
+            self.errorLabelGHigh.clear()
+            ghigh = float(ghigh)
+
+        glow = self.lineEditGLow.text()
+        if not glow:
+            self.errorLabelGLow.setText('* введите границу')
+            self.errorLabelGLow.setStyleSheet("color: red")
+        else:
+            self.errorLabelGLow.clear()
+            glow = float(glow)
+
+        bw = self.lineEditBW.text()
+        if not bw:
+            self.errorLabelBW.setText('* введите вес')
+            self.errorLabelBW.setStyleSheet("color: red")
+        else:
+            self.errorLabelBW.clear()
+            bw = int(bw)
+
+        hrb = self.lineEditHRb.text()
+        if not hrb:
+            self.errorLabelHRb.setText('* введите пульс')
+            self.errorLabelHRb.setStyleSheet("color: red")
+        else:
+            self.errorLabelHRb.clear()
+            hrb = int(hrb)
+
+        heartrate = int(self.comboBoxHR.currentText())
+        duration = int(self.comboBoxDuration.currentText())
+
+        if glucose and ghigh and glow and bw and hrb:
+            print(glucose, heartrate, duration, ghigh, glow, bw, hrb)
+            
+            ghigh = to_mgdl(ghigh)
+            glow = to_mgdl(glow)
+
+
+            glucose = to_gmass(glucose)
+            
+            meal, ins, sim = get_recommendation_from_model(
+                bw, hrb, ghigh, glow, glucose, duration, heartrate
+            )
+            sim_log = sim.get_sim_log()[-1]
+            g_col = sim_log[0]
+            final_g = to_mmoll(G(0, g_col[:,0]))
+            print(f'Meal: {meal}, Insulin {ins}, Final glucose {final_g[-1]}')
+            self.labelDRec.setText(str(meal))
+            self.labelIRec.setText(str(ins))
+            self.lcdNumberResultGlucose.display("%.1f" % final_g[-1])
+            image_uri = os.path.join('uipic', 'result.png')
+            plot_selection_results(sim, ghigh, glow, name=image_uri)
+            
+            import imageio
+            pixmap = QtGui.QPixmap(image_uri)
+            self.ImageLabel.setPixmap(pixmap)
+            
+
+        
 
 if __name__ == "__main__":
     # main()

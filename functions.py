@@ -252,8 +252,9 @@ def print_multiple_graphs(series, time, labels, colors, linestyles_list, name, b
         plt.ylabel('Концентрация, ммоль/л')
     plt.xlabel('время, мин')
     plt.legend()
-    plt.show()
-    #plt.savefig(os.path.join('results','modelling',f'{name}.png'))
+    # plt.show()
+    # plt.savefig(os.path.join('uipic',f'{name}.png'))
+    plt.savefig(name)
     plt.close()
 
 
